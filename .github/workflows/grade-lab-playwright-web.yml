@@ -3,8 +3,9 @@ name: Grade — Lab Playwright Web (busca + mock)
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
+    # só dispara quando o aluno mexe no que é avaliado (evita comentário "0/10" em lab que ele nem entregou)
     paths:
-      - 'exercicios/01-lab-playwright-web/**'
+      - 'exercicios/01-lab-playwright-web/pratica/tests/**'
 
 permissions:
   pull-requests: write
