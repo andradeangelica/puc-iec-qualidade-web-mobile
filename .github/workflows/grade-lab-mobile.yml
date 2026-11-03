@@ -3,8 +3,10 @@ name: Grade — Lab Mobile (Maestro + Jest)
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
+    # só dispara quando o aluno mexe no que é avaliado (evita comentário "0/10" em lab que ele nem entregou)
     paths:
-      - 'exercicios/02-lab-mobile-maestro-jest/**'
+      - 'exercicios/02-lab-mobile-maestro-jest/pratica/__tests__/**'
+      - 'exercicios/02-lab-mobile-maestro-jest/pratica/flows/**'
 
 permissions:
   pull-requests: write
