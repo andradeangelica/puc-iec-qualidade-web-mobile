@@ -1,4 +1,4 @@
-name: Grade — Lab Arquitetura de Testes
+name: Grade — Lab Mobile — Maestro Avançado
 
 on:
   pull_request_target:
@@ -78,7 +78,7 @@ jobs:
             const { autoScore, maxAutoScore, breakdown } = grade
 
             const body = [
-              '## 🤖 J.A.R.V.I.S. — Avaliação Lab Arquitetura de Testes',
+              '## 🤖 J.A.R.V.I.S. — Avaliação Lab Mobile — Maestro Avançado',
               '',
               `**Nota automática (piso): ${autoScore}/${maxAutoScore} pts**`,
               '',
@@ -99,7 +99,7 @@ jobs:
 
             const existing = comments.find(c =>
               c.user.login === 'github-actions[bot]' &&
-              c.body.includes('Lab Arquitetura de Testes')
+              (c.body.includes('Maestro Avançado') || c.body.includes('Lab Arquitetura de Testes'))
             )
 
             if (existing) {
