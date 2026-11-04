@@ -1,4 +1,4 @@
-name: Grade — Lab Mobile (Maestro + Jest)
+name: Grade — Lab Mobile — Maestro Básico + Jest
 
 on:
   pull_request_target:
@@ -78,7 +78,7 @@ jobs:
             const { autoScore, maxAutoScore, breakdown } = grade
 
             const body = [
-              '## 🤖 J.A.R.V.I.S. — Avaliação Lab Mobile (Maestro + Jest)',
+              '## 🤖 J.A.R.V.I.S. — Avaliação Lab Mobile — Maestro Básico + Jest',
               '',
               `**Nota automática (piso): ${autoScore}/${maxAutoScore} pts**`,
               '',
@@ -99,7 +99,7 @@ jobs:
 
             const existing = comments.find(c =>
               c.user.login === 'github-actions[bot]' &&
-              c.body.includes('Lab Mobile')
+              (c.body.includes('Maestro Básico') || c.body.includes('Lab Mobile (Maestro + Jest)'))
             )
 
             if (existing) {
