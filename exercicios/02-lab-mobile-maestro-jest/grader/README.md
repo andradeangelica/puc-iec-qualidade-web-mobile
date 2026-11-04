@@ -1,4 +1,4 @@
-# Grader — Lab Mobile (10 pts)
+# Grader — Lab Mobile — Maestro Básico + Jest (10 pts)
 
 Validator estrutural (parse-only) da rubrica do `../enunciado.md`. Piso automático = 7 de 10 pts:
 Jest unit (2,5) + integração (2,5) + flows 02 e 03 completos (2). Vídeos iOS/Android (1) e CI
