@@ -1,4 +1,4 @@
-# Lab Arquitetura de Testes (10 pts)
+# Lab Mobile — Maestro Avançado (10 pts)
 
 **Disciplina:** Qualidade em Aplicações Web e Mobile
 **Aula:** Aula 5 — Maestro Avançado + Arquitetura de Testes
