@@ -1,4 +1,4 @@
-# Lab Mobile — Maestro + Jest (10 pts)
+# Lab Mobile — Maestro Básico + Jest (10 pts)
 
 **Disciplina:** Qualidade em Aplicações Web e Mobile
 **Aula:** Aula 4 — Maestro Mobile
