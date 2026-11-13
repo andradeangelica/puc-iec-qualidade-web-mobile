@@ -33,15 +33,66 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { test, expect } from '@playwright/test';
-import { falta } from '../support/todo';
 
-test.describe('Missão livre — <nome do seu fluxo>', () => {
-  test('feliz: <descreva>', async ({ page }) => {
-    await page.goto('/qa');
-    void expect;
-    falta('Missão livre — teste feliz');
+// Fluxo escolhido: COMENTÁRIOS no detalhe do filme (/movie/603 = Matrix).
+// Por quê: é o único fluxo que ESCREVE dados do usuário (IndexedDB + fila offline) e os
+// blocos A–F só tocaram nele pelo lado offline (E4). Aqui cobrimos o lado das regras de entrada.
+test.describe('Missão livre — comentários no detalhe do filme', () => {
+  const itens = (page: import('@playwright/test').Page) => page.locator('[data-testid^="comment-item-"]');
+
+  test('feliz: publicar um comentário online mostra autor, texto e selo "synced"', async ({ page }) => {
+    await page.goto('/movie/603');
+
+    await test.step('antes de publicar: convite de "nenhum comentário"', async () => {
+      await expect(page.getByTestId('comments-empty')).toBeVisible();
+      await expect(itens(page)).toHaveCount(0);
+    });
+
+    await test.step('publica o comentário', async () => {
+      await page.getByTestId('comment-input').fill('Revi ontem e continua ótimo');
+      await page.getByTestId('comment-submit-button').click();
+    });
+
+    await test.step('o comentário aparece, sincroniza e o formulário é limpo', async () => {
+      const comentario = itens(page).first();
+      await expect(comentario).toContainText('aluno'); // autor = parte do e-mail antes do @
+      await expect(comentario).toContainText('Revi ontem e continua ótimo');
+      await expect(comentario.locator('[data-status]')).toHaveAttribute('data-status', 'synced');
+      await expect(page.getByTestId('comments-empty')).toBeHidden();
+      await expect(page.getByTestId('comment-input')).toHaveValue('');
+    });
   });
 
-  // test('negativo: <descreva>', async ({ page }) => { ... });
-  // test('borda: <descreva>', async ({ page }) => { ... });
+  test('negativo: comentário vazio ou só com espaços não é publicado', async ({ page }) => {
+    await page.goto('/movie/603');
+    const campo = page.getByTestId('comment-input');
+    const publicar = page.getByTestId('comment-submit-button');
+
+    // vazio: o botão nasce desabilitado
+    await expect(publicar).toBeDisabled();
+
+    // só espaços: continua desabilitado e Enter (envio pelo teclado) não cria nada
+    await campo.fill('     ');
+    await expect(publicar).toBeDisabled();
+    await campo.press('Enter');
+    await expect(itens(page)).toHaveCount(0);
+    await expect(page.getByTestId('comments-empty')).toBeVisible();
+
+    // prova de que o bloqueio é só pela regra: com texto de verdade o botão libera
+    await campo.fill('ok');
+    await expect(publicar).toBeEnabled();
+  });
+
+  test('borda: o campo aceita no máximo 280 caracteres', async ({ page }) => {
+    await page.goto('/movie/603');
+    const campo = page.getByTestId('comment-input');
+    await expect(campo).toHaveAttribute('maxlength', '280');
+
+    // pressSequentially digita de verdade (respeita o limite); fill() ignoraria o maxlength.
+    await campo.pressSequentially('a'.repeat(300));
+    await expect(campo).toHaveValue('a'.repeat(280));
+
+    await page.getByTestId('comment-submit-button').click();
+    await expect(itens(page).first().locator('p')).toHaveText('a'.repeat(280));
+  });
 });
