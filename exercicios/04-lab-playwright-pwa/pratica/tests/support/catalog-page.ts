@@ -12,7 +12,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { expect, type Locator, type Page } from '@playwright/test';
-import { falta } from './todo';
 
 export class CatalogPage {
   constructor(private readonly page: Page) {}
@@ -25,23 +24,22 @@ export class CatalogPage {
 
   /** ✍️ Devolve o card (role "article") cujo texto contém o título — use filter({ hasText }). */
   card(title: string): Locator {
-    void title;
-    return falta('D2 — card(title)');
+    return this.page.getByRole('article').filter({ hasText: title });
   }
 
   /** ✍️ Clica no botão "Favoritar …" DENTRO do card do título. */
   async favorite(title: string) {
-    void title;
-    falta('D2 — favorite(title)');
+    await this.card(title).getByRole('button', { name: /Favoritar/ }).click();
   }
 
   /** ✍️ Clica em "Favoritos" (movielist-favorites-button) e espera a tela favorites-screen. */
   async openFavorites() {
-    falta('D2 — openFavorites()');
+    await this.page.getByTestId('movielist-favorites-button').click();
+    await expect(this.page.getByTestId('favorites-screen')).toBeVisible();
   }
 
   /** ✍️ Locator do contador da tela de favoritos (testid favorites-count). */
   get favoritesCount(): Locator {
-    return falta('D2 — favoritesCount');
+    return this.page.getByTestId('favorites-count');
   }
 }
