@@ -19,7 +19,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { test, expect } from '@playwright/test';
-import { falta } from '../support/todo';
 
 test.use({ serviceWorkers: 'block' });
 
@@ -44,8 +43,8 @@ test.describe('Bloco C — mock de rede', () => {
     );
     await page.goto('/qa');
 
-    // ✍️ sua vez
-    falta('C1 — confira 1 card e o título');
+    await expect(page.getByRole('article')).toHaveCount(1);
+    await expect(page.getByTestId('movie-card-title-777')).toHaveText('Filme do Mock');
   });
 
   // ── C2 🟡 · ≈ 7 min ────────────────────────────────────────────────────────
@@ -57,8 +56,23 @@ test.describe('Bloco C — mock de rede', () => {
   //    4. clique em "Tentar de novo" (movielist-retry-button)
   //    5. o erro some e os 12 cards aparecem
   test('C2. erro 500 mostra o estado de erro; destrava a rota e "Tentar de novo" funciona', async ({ page }) => {
-    void page;
-    falta('C2 — escreva os 5 passos');
+    // 1. o "backend" responde 500
+    await page.route(CATALOGO, (route) =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{"erro":"falha simulada"}' }),
+    );
+
+    // 2. a tela mostra o estado de erro (e nenhum card)
+    await page.goto('/qa');
+    await expect(page.getByTestId('movielist-error')).toBeVisible();
+    await expect(page.getByRole('article')).toHaveCount(0);
+
+    // 3. solta o mock: a próxima requisição vai pra rede de verdade
+    await page.unroute(CATALOGO);
+
+    // 4–5. "Tentar de novo": o erro some e o catálogo carrega
+    await page.getByTestId('movielist-retry-button').click();
+    await expect(page.getByTestId('movielist-error')).toBeHidden();
+    await expect(page.getByRole('article')).toHaveCount(12);
   });
 
   // ── C3 🟡 · ≈ 7 min ────────────────────────────────────────────────────────
@@ -71,8 +85,19 @@ test.describe('Bloco C — mock de rede', () => {
   //    • devolve com  route.fulfill({ response, json: ... })
   //    Depois: goto('/qa'), confira 3 cards e que o título do Matrix (id 603) é "MATRIX".
   test('C3. route.fetch(): pega a resposta REAL e altera só o que importa', async ({ page }) => {
-    void page;
-    falta('C3 — escreva o handler e as asserções');
+    type FilmeDoCatalogo = { id: number; title: string };
+
+    await page.route(CATALOGO, async (route) => {
+      // A requisição vai pra rede de verdade; aqui só alteramos a resposta.
+      const response = await route.fetch();
+      const filmes = (await response.json()) as FilmeDoCatalogo[];
+      const alterados = filmes.slice(0, 3).map((filme) => ({ ...filme, title: filme.title.toUpperCase() }));
+      await route.fulfill({ response, json: alterados });
+    });
+    await page.goto('/qa');
+
+    await expect(page.getByRole('article')).toHaveCount(3);
+    await expect(page.getByTestId('movie-card-title-603')).toHaveText('MATRIX');
   });
 
   // ── C4 🔴 · ≈ 12 min ───────────────────────────────────────────────────────
@@ -89,7 +114,18 @@ test.describe('Bloco C — mock de rede', () => {
   // 🆘 Por que esperar o resultado antes de contar? Pense: o que acontece se você
   //    contar logo depois de digitar?
   test('C4. debounce: digitar "matrix" faz UMA requisição só', async ({ page }) => {
-    void page;
-    falta('C4 — escreva o teste inteiro');
+    // Registrado ANTES de navegar: guarda a URL de toda requisição da página.
+    const urls: string[] = [];
+    page.on('request', (request) => urls.push(request.url()));
+
+    await page.goto('/search');
+    await page.getByTestId('search-input').pressSequentially('matrix', { delay: 40 });
+
+    // Espera o resultado ANTES de contar: se contasse logo após digitar, o debounce
+    // (250ms) ainda não teria disparado a requisição e o contador seria 0.
+    await expect(page.getByTestId('search-result-603')).toBeVisible();
+
+    const requisicoesAoCatalogo = urls.filter((url) => url.endsWith('/api/movies.json')).length;
+    expect(requisicoesAoCatalogo, 'digitar "matrix" deveria disparar UMA requisição ao catálogo (debounce)').toBe(1);
   });
 });

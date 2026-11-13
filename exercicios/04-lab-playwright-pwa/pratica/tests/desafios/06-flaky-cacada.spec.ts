@@ -29,15 +29,15 @@ test.describe('Bloco F — suíte instável (conserte)', () => {
   test('F1a. busca mostra 1 resultado pra "matrix"', async ({ page }) => {
     await page.goto('/search');
     await page.getByTestId('search-input').pressSequentially('matrix', { delay: 40 });
-    const total = await page.locator('[data-testid^="search-result-"]').count(); // 🐛
-    expect(total).toBe(1);
+    // O expect do Playwright espera o número chegar (debounce + resposta); ler o número uma vez, não.
+    await expect(page.locator('[data-testid^="search-result-"]')).toHaveCount(1);
   });
 
   test('F1b. carregar mais traz 12 filmes novos', async ({ page }) => {
     await page.goto('/qa');
     await page.getByTestId('movielist-load-more-button').click();
-    await page.waitForTimeout(300); // 🐛
-    expect(await page.getByRole('article').count()).toBe(24); // 🐛
+    // Sem sleep: o expect espera os 24 cards aparecerem, sem depender de quanto a rede demora.
+    await expect(page.getByRole('article')).toHaveCount(24);
   });
 
   // ✔ F1c é o CONTROLE: já está certo — compare com os outros.
@@ -48,7 +48,14 @@ test.describe('Bloco F — suíte instável (conserte)', () => {
   });
 
   test('F1d. favoritos mostra 1 filme', async ({ page }) => {
-    await page.goto('/favorites'); // 🐛 ele "supõe" que o F1c já favoritou o Matrix
+    // Cada teste nasce com navegador zerado: este teste cria o PRÓPRIO estado,
+    // em vez de supor que o F1c já favoritou o Matrix.
+    await page.goto('/qa');
+    const coracao = page.getByTestId('movie-card-heart-603');
+    await coracao.click();
+    await expect(coracao).toHaveAttribute('aria-pressed', 'true');
+
+    await page.goto('/favorites');
     await expect(page.getByTestId('favorites-count')).toHaveText('1 filme favorito');
   });
 });

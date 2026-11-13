@@ -17,7 +17,6 @@
 import { test as base, expect } from '@playwright/test';
 import { CatalogPage } from '../support/catalog-page';
 import { test, expect as expectFx } from '../support/fixtures'; // expectFx = o mesmo expect, reexportado por fixtures.ts
-import { falta } from '../support/todo';
 
 base.describe('Bloco D — conta nova (sem sessão)', () => {
   base.use({ storageState: { cookies: [], origins: [] } });
@@ -35,8 +34,36 @@ base.describe('Bloco D — conta nova (sem sessão)', () => {
   //       "E-mail ou senha inválidos"
   //    6. POSITIVO: entre com "abcd" → sai do /login e, em '/qa', o logout-button aparece
   base('D1. cadastro → sair → senha errada → entrar com a conta nova', async ({ page }) => {
-    void page;
-    falta('D1 — escreva o fluxo');
+    const email = `aluna.${Date.now()}@teste.com`;
+
+    // 1–2. criar conta
+    await page.goto('/login');
+    await page.getByTestId('auth-mode-toggle').click();
+    await page.getByTestId('register-name-input').fill('Aluna Teste');
+    await page.getByTestId('register-email-input').fill(email);
+    await page.getByTestId('register-password-input').fill('abcd');
+    await page.getByTestId('register-submit-button').click();
+
+    // 3. cadastro cria a sessão e leva pra fora do /login (vamos pro /qa, sem token)
+    await page.waitForURL((url) => !url.pathname.startsWith('/login'));
+    await page.goto('/qa');
+
+    // 4. sair devolve pro /login
+    await page.getByTestId('logout-button').click();
+    await expect(page).toHaveURL(/\/login/);
+
+    // 5. NEGATIVO: senha errada
+    await page.getByTestId('login-email-input').fill(email);
+    await page.getByTestId('login-password-input').fill('errada');
+    await page.getByTestId('login-submit-button').click();
+    await expect(page.getByTestId('login-error-message')).toHaveText('E-mail ou senha inválidos');
+
+    // 6. POSITIVO: senha certa entra com a conta nova
+    await page.getByTestId('login-password-input').fill('abcd');
+    await page.getByTestId('login-submit-button').click();
+    await page.waitForURL((url) => !url.pathname.startsWith('/login'));
+    await page.goto('/qa');
+    await expect(page.getByTestId('logout-button')).toBeVisible();
   });
 });
 
@@ -47,9 +74,12 @@ base.describe('Bloco D — conta nova (sem sessão)', () => {
 //    O teste não pode ter NENHUM getBy… dentro dele: tudo passa pelo CatalogPage.
 base('D2. Page Object: o teste lê como uma frase', async ({ page }) => {
   const catalog = new CatalogPage(page);
-  void catalog;
-  void expect;
-  falta('D2 — use o CatalogPage');
+
+  await catalog.goto();
+  await catalog.favorite('Pulp Fiction');
+  await catalog.openFavorites();
+
+  await expect(catalog.favoritesCount).toHaveText('1 filme favorito');
 });
 
 // ── D3 🔴 · ≈ 12 min ─────────────────────────────────────────────────────────
@@ -61,9 +91,13 @@ base('D2. Page Object: o teste lê como uma frase', async ({ page }) => {
 //    (peça também  page  no parâmetro do teste: os itens favorites-item-… são conferidos com ele)
 // 🆘 Por que semear em vez de clicar? Responda na pergunta 3 do RESPOSTAS.md.
 test('D3. fixtures: semeia favoritos sem clicar e confere na tela', async ({ catalog, seedFavorites, page }) => {
-  void page;
-  void catalog;
-  void seedFavorites;
-  void expectFx;
-  falta('D3 — escreva o teste com as fixtures');
+  // Semear ANTES de abrir a página: o initScript só vale para páginas carregadas depois.
+  await seedFavorites([603, 680]);
+
+  await catalog.goto();
+  await catalog.openFavorites();
+
+  await expectFx(catalog.favoritesCount).toHaveText('2 filmes favoritos');
+  await expectFx(page.getByTestId('favorites-item-603')).toBeVisible();
+  await expectFx(page.getByTestId('favorites-item-680')).toBeVisible();
 });

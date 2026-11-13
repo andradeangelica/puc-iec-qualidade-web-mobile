@@ -14,7 +14,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { test, expect } from '@playwright/test';
-import { falta } from '../support/todo';
 
 test.describe('Bloco B — expect e espera', () => {
   // ── B1 🟢 · ≈ 4 min ────────────────────────────────────────────────────────
@@ -30,9 +29,14 @@ test.describe('Bloco B — expect e espera', () => {
 
     await expect(cards).toHaveCount(12);
 
-    // ✍️ sua vez: 24, depois 36, depois o botão some
-    void loadMore;
-    falta('B1 — complete a paginação');
+    await loadMore.click();
+    await expect(cards).toHaveCount(24);
+
+    await loadMore.click();
+    await expect(cards).toHaveCount(36);
+
+    // Todos os 36 filmes já estão na tela: não há mais o que carregar.
+    await expect(loadMore).toBeHidden();
   });
 
   // ── B2 🟡 · ≈ 7 min ────────────────────────────────────────────────────────
@@ -47,8 +51,24 @@ test.describe('Bloco B — expect e espera', () => {
   // 🆘 Dica: não precisa de nenhum sleep — cada expect já espera sozinho.
   test('B2. busca com debounce: digita devagar, limpa, e o vazio', async ({ page }) => {
     await page.goto('/search');
+    const input = page.getByTestId('search-input');
+    const results = page.locator('[data-testid^="search-result-"]');
 
-    falta('B2 — escreva os 4 passos');
+    // 1. digita como gente; o debounce de 250ms é esperado pelo próprio expect
+    await input.pressSequentially('matrix', { delay: 80 });
+
+    // 2. exatamente 1 resultado e ele é o Matrix
+    await expect(results).toHaveCount(1);
+    await expect(results).toContainText('Matrix');
+
+    // 3. "Limpar" esvazia o campo e some com os resultados
+    await page.getByRole('button', { name: 'Limpar' }).click();
+    await expect(input).toHaveValue('');
+    await expect(results).toHaveCount(0);
+
+    // 4. busca sem resultado: estado vazio citando o termo digitado
+    await input.pressSequentially('xyzw', { delay: 80 });
+    await expect(page.getByTestId('search-empty')).toContainText('xyzw');
   });
 
   // ── B3 🔴 · ≈ 12 min ───────────────────────────────────────────────────────
@@ -69,6 +89,22 @@ test.describe('Bloco B — expect e espera', () => {
   test('B3. favoritos persistem: expect.poll no localStorage + soft após reload', async ({ page }) => {
     await page.goto('/qa');
 
-    falta('B3 — escreva o teste inteiro');
+    // Matrix (603), Pulp Fiction (680) e Clube da Luta (550) — NESSA ordem.
+    await page.getByTestId('movie-card-heart-603').click();
+    await page.getByTestId('movie-card-heart-680').click();
+    await page.getByTestId('movie-card-heart-550').click();
+
+    // localStorage não é elemento de tela: expect.poll repete a leitura até bater.
+    const lerFavoritos = () =>
+      page.evaluate(() => JSON.parse(localStorage.getItem('cinefav-favorites') ?? '[]') as number[]);
+    await expect.poll(lerFavoritos).toEqual([603, 680, 550]);
+
+    // Depois do reload os corações vêm do localStorage. soft = junta todos os erros.
+    await page.reload();
+    await expect.soft(page.getByTestId('movie-card-heart-603')).toHaveAttribute('aria-pressed', 'true');
+    await expect.soft(page.getByTestId('movie-card-heart-680')).toHaveAttribute('aria-pressed', 'true');
+    await expect.soft(page.getByTestId('movie-card-heart-550')).toHaveAttribute('aria-pressed', 'true');
+    // Forrest Gump (13) não foi favoritado.
+    await expect.soft(page.getByTestId('movie-card-heart-13')).toHaveAttribute('aria-pressed', 'false');
   });
 });
